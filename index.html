@@ -60,6 +60,7 @@ button{touch-action:manipulation;user-select:none;-webkit-user-select:none}
 .ctrl button:hover{color:var(--green);background:var(--line)}
 .ctrl button:active{transform:scale(.92)}
 .ctrl input{width:44px;height:44px;border:0;background:none;color:var(--fg);text-align:center;font-family:var(--mono);font-size:17px;-moz-appearance:textfield;transition:transform .12s,color .2s}
+.ctrl input.wide{width:58px}
 .ctrl input.bump{transform:scale(1.18);color:var(--green)}
 .ctrl input::-webkit-outer-spin-button,.ctrl input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 
@@ -141,7 +142,7 @@ const CATS=[
   {k:"photos",n:"Photos",w:0.0556},
   {k:"leads",n:"Leads",w:0.0667},
   {k:"newinv",n:"New Inv",w:0},
-  {k:"nonprod",n:"Non Prod",w:0.1315},
+  {k:"nonprod",n:"Non Prod",w:0.1315,step:.25,unit:"hr"},  // 1 = one hour, steps in 15 min
   {k:"resi",n:"Resi",w:0.333},
 ];
 const DAYS=["Mon","Tue","Wed","Thu","Fri"];
@@ -254,18 +255,18 @@ const list=$("list");
 CATS.forEach(c=>{
   const el=document.createElement("div");
   el.className="item"+(c.w?"":" off");
-  el.innerHTML=`<div class="name"><span>${c.n}</span><small>${c.w?c.w+" each":"not counted"}</small></div>
-  <div class="ctrl"><button type="button" data-d="-1" aria-label="Remove one ${c.n}">−</button>
-  <input id="c-${c.k}" class="num" type="number" min="0" inputmode="numeric" aria-label="${c.n} count">
-  <button type="button" data-d="1" aria-label="Add one ${c.n}">+</button></div>`;
+  el.innerHTML=`<div class="name"><span>${c.n}</span><small>${!c.w?"not counted":c.unit?c.w+" / hr · 15 min steps":c.w+" each"}</small></div>
+  <div class="ctrl"><button type="button" data-d="-1" aria-label="${c.step?"Remove 15 minutes of":"Remove one"} ${c.n}">−</button>
+  <input id="c-${c.k}" class="num${c.step?" wide":""}" type="number" min="0" step="${c.step||1}" inputmode="${c.step?"decimal":"numeric"}" aria-label="${c.n} ${c.unit?"hours":"count"}">
+  <button type="button" data-d="1" aria-label="${c.step?"Add 15 minutes of":"Add one"} ${c.n}">+</button></div>`;
   const inp=el.querySelector("input");
   c.input=inp;
 
   const step=(d,btn)=>{
-    const before=+S.c[c.k]||0,after=Math.max(0,before+d);
+    const inc=c.step||1,before=+S.c[c.k]||0,after=Math.max(0,Math.round((before+d*inc)/inc)*inc);
     if(after===before)return false;
     S.c[c.k]=after;inp.value=after;flash(inp,"bump",120);
-    if(d>0){sfx.up(after-1);buzz(6);const [x,y]=center(btn);burst(x,y,c.w?9:4,2);if(c.w)flash($("total"),"pop",140)}
+    if(d>0){sfx.up(Math.round(after/inc)-1);buzz(6);const [x,y]=center(btn);burst(x,y,c.w?9:4,2);if(c.w)flash($("total"),"pop",140)}
     else{sfx.down();buzz(4)}
     render({fromUser:d>0});return true;
   };
@@ -281,7 +282,7 @@ CATS.forEach(c=>{
     ["pointerup","pointerleave","pointercancel"].forEach(t=>b.addEventListener(t,stop));
     b.addEventListener("click",()=>{if(held){held=false;return}step(d,b)});
   });
-  inp.addEventListener("input",()=>{S.c[c.k]=Math.max(0,parseInt(inp.value)||0);render({fromUser:true})});
+  inp.addEventListener("input",()=>{const inc=c.step||1;S.c[c.k]=Math.max(0,Math.round((parseFloat(inp.value)||0)/inc)*inc);render({fromUser:true})});
   inp.addEventListener("blur",()=>{inp.value=S.c[c.k]});
   inp.addEventListener("focus",()=>inp.select());
   list.appendChild(el);

@@ -1,6 +1,6 @@
 // KPI Points service worker: app works offline after the first visit.
 // Bump VERSION whenever you upload a new index.html so phones pick up the change.
-const VERSION = "kpi-points-v1";
+const VERSION = "kpi-points-v2";
 const CORE = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
