@@ -103,6 +103,41 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--green);outline-
 .mute:hover{color:var(--green)}
 .mute svg{width:18px;height:18px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* Booking calc: pill opener + bottom sheet */
+.opener{align-self:center;display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;border:1px solid var(--line);background:color-mix(in srgb,var(--row) 82%,transparent);color:var(--muted);font-family:var(--display);font-size:13px;cursor:pointer;transition:color .15s,border-color .15s}
+.opener:hover{color:var(--fg);border-color:var(--muted)}
+.opener svg{width:16px;height:16px}
+.scrim{position:fixed;inset:0;z-index:5;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .25s}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:6;max-width:440px;margin:0 auto;background:var(--row);border:1px solid var(--line);border-bottom:0;border-radius:22px 22px 0 0;padding-block:10px calc(20px + env(safe-area-inset-bottom,0px));padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px;transform:translateY(105%);visibility:hidden;transition:transform .32s cubic-bezier(.2,.8,.2,1),visibility 0s .32s;max-height:92vh;overflow-y:auto}
+.sheet.open{transform:none;visibility:visible;transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+.scrim.open{opacity:1;pointer-events:auto}
+.grab{width:36px;height:4px;border-radius:2px;background:var(--line);align-self:center}
+.sheet-head{display:flex;justify-content:space-between;align-items:center}
+.sheet-head h2{margin:0;font-size:15px;font-weight:500}
+.x{width:36px;height:36px;border:0;border-radius:50%;background:var(--line);color:var(--muted);font-size:18px;cursor:pointer}
+.x:hover{color:var(--fg)}
+.size{display:flex;align-items:baseline;gap:8px;border-bottom:1px solid var(--line);padding-bottom:6px;transition:border-color .2s}
+.size:focus-within{border-color:var(--green)}
+.size input{flex:1;min-width:0;background:none;border:0;color:var(--fg);font-family:var(--mono);font-size:40px;font-weight:500;letter-spacing:-.03em;padding:0;-moz-appearance:textfield}
+.size input:focus{outline:none}
+.size input::placeholder{color:#2a332e}
+.size input::-webkit-outer-spin-button,.size input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.size span{color:var(--muted);font-size:14px}
+.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.chip{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:12px;border-radius:12px;border:1px solid var(--line);background:none;color:var(--fg);font-family:var(--display);font-size:14px;cursor:pointer;text-align:left;transition:border-color .15s,background .15s}
+.chip small{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--green);background:color-mix(in srgb,var(--green) 9%,transparent)}
+.chip[aria-pressed="true"] small{color:var(--green)}
+.out{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center}
+.out div{display:flex;flex-direction:column;gap:6px;align-items:center}
+.out b{font-family:var(--mono);font-weight:500;font-size:24px;font-variant-numeric:tabular-nums}
+.out small{font-size:11px;color:var(--muted)}
+.slots{display:flex;gap:4px;height:24px;align-items:center}
+.slots i{width:14px;height:14px;border-radius:4px;border:1px solid var(--line);transition:background .2s,border-color .2s}
+.slots i.on{background:var(--green);border-color:var(--green)}
+.brk{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:center;min-height:1.4em}
+.log:disabled{background:var(--line);color:var(--muted);cursor:default}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}.bg i{animation:none}}
 </style>
 </head>
@@ -133,6 +168,30 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--green);outline-
     <div class="week" id="week"></div>
     <div class="weekline"><span>Week <b class="num" id="wSum">0.00</b> / 5</span><span id="wNeed">Need 1.00 / day</span></div>
   </section>
+
+  <button class="opener" id="openCalc" type="button" aria-haspopup="dialog" aria-controls="sheet">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5L12 4l9 6.5"/><path d="M5 9.5V20h14V9.5"/><path d="M10 20v-5h4v5"/></svg>
+    Booking calc
+  </button>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="grab" aria-hidden="true"></div>
+  <div class="sheet-head"><h2 id="sheetTitle">Booking calc</h2><button class="x" id="closeCalc" type="button" aria-label="Close booking calc">×</button></div>
+  <label class="size" for="area"><input id="area" type="number" inputmode="decimal" min="0" step="any" placeholder="0" autocomplete="off" aria-label="Property size in square metres"><span>m²</span></label>
+  <div class="chips">
+    <button class="chip" type="button" data-svc="mp" aria-pressed="false">MP<small id="mpMin">by size</small></button>
+    <button class="chip" type="button" data-svc="photo" aria-pressed="false">Photo<small>45 min</small></button>
+    <button class="chip" type="button" data-svc="splat" aria-pressed="false">Splat<small>15 min</small></button>
+  </div>
+  <div class="out" aria-live="polite">
+    <div><b id="bMin">–</b><small>minutes</small></div>
+    <div><span class="slots" id="bSlots" aria-label="0 slots"><i></i><i></i><i></i></span><small>slots</small></div>
+    <div><b id="bPts">–</b><small>points</small></div>
+  </div>
+  <div class="brk" id="bBrk">Tick a service to start</div>
+  <button class="log" id="addBooking" type="button" disabled>Add to today</button>
 </div>
 
 <script>
@@ -255,7 +314,7 @@ const list=$("list");
 CATS.forEach(c=>{
   const el=document.createElement("div");
   el.className="item"+(c.w?"":" off");
-  el.innerHTML=`<div class="name"><span>${c.n}</span><small>${!c.w?"not counted":c.unit?c.w+" / hr · 15 min steps":c.w+" each"}</small></div>
+  el.innerHTML=`<div class="name"><span>${c.n}</span><small>${!c.w?"not counted":c.unit?c.w+" / hr · 15 min":c.w+" each"}</small></div>
   <div class="ctrl"><button type="button" data-d="-1" aria-label="${c.step?"Remove 15 minutes of":"Remove one"} ${c.n}">−</button>
   <input id="c-${c.k}" class="num${c.step?" wide":""}" type="number" min="0" step="${c.step||1}" inputmode="${c.step?"decimal":"numeric"}" aria-label="${c.n} ${c.unit?"hours":"count"}">
   <button type="button" data-d="1" aria-label="${c.step?"Add 15 minutes of":"Add one"} ${c.n}">+</button></div>`;
@@ -349,6 +408,64 @@ armed($("clear"),"Clear counts","Tap again to clear",()=>{
 armed($("reset"),"Reset week","Tap again to reset",()=>{
   sfx.clear();S.week=[null,null,null,null,null];render();
 });
+
+/* ---------- Booking calc (same rules as the team's BookingCalc app) ---------- */
+// MP: 30 min, plus 15 min for every 45 m² (or part) over 180 m². Photo 45, Splat 15.
+// Slots: up to 90 min = 1, up to 210 = 2, more = 3. Each slot = 0.333 pts = one Resi.
+const mpMinutes=a=>{const extra=a-135-45;return 30+(extra>0?Math.ceil(extra/45):0)*15};
+const slotsFor=m=>m>210?3:m>90?2:1;
+const B={mp:false,photo:false,splat:false};
+let booking=null,lastFocus=null;
+
+function calcBooking(){
+  const raw=$("area").value.trim(),area=parseFloat(raw)||0;
+  $("mpMin").textContent=area>0?mpMinutes(area)+" min":"by size";
+  const any=B.mp||B.photo||B.splat;
+  const need=B.mp&&!(area>0);
+  booking=null;
+  if(any&&!need){
+    const m=B.mp?mpMinutes(area):0,p=B.photo?45:0,s=B.splat?15:0,total=m+p+s,slots=slotsFor(total);
+    booking={total,slots,points:slots*0.333};
+    $("bBrk").textContent=[B.mp&&"MP "+m,B.photo&&"Photo "+p,B.splat&&"Splat "+s].filter(Boolean).join(" + ")+" = "+total+" min";
+  }else{
+    $("bBrk").textContent=need?"Enter the size for MP":"Tick a service to start";
+  }
+  $("bMin").textContent=booking?booking.total:"–";
+  $("bPts").textContent=booking?booking.points.toFixed(3):"–";
+  [...$("bSlots").children].forEach((i,n)=>i.classList.toggle("on",!!booking&&n<booking.slots));
+  $("bSlots").setAttribute("aria-label",(booking?booking.slots:0)+" slots");
+  const add=$("addBooking");add.disabled=!booking;
+  add.textContent=booking?`Add ${booking.slots} Resi to today`:"Add to today";
+}
+function resetBooking(){$("area").value="";Object.keys(B).forEach(k=>B[k]=false);
+  document.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed","false"));calcBooking()}
+
+function openSheet(){lastFocus=document.activeElement;$("sheet").classList.add("open");$("scrim").classList.add("open");sfx.tap();
+  setTimeout(()=>$("area").focus({preventScroll:true}),320)}
+function closeSheet(){$("sheet").classList.remove("open");$("scrim").classList.remove("open");lastFocus&&lastFocus.focus&&lastFocus.focus({preventScroll:true})}
+
+$("openCalc").onclick=openSheet;
+$("closeCalc").onclick=closeSheet;
+$("scrim").onclick=closeSheet;
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("sheet").classList.contains("open"))closeSheet()});
+$("area").addEventListener("input",calcBooking);
+document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
+  const k=c.dataset.svc;B[k]=!B[k];c.setAttribute("aria-pressed",B[k]);
+  B[k]?sfx.up(2):sfx.down();buzz(5);calcBooking();
+});
+$("addBooking").onclick=()=>{
+  if(!booking)return;
+  const n=booking.slots,resi=CATS.find(c=>c.k==="resi");
+  closeSheet();resetBooking();
+  S.c.resi=(+S.c.resi||0)+n;resi.input.value=S.c.resi;
+  setTimeout(()=>{
+    const row=resi.input.closest(".item");row.scrollIntoView({behavior:reduce?"auto":"smooth",block:"center"});
+    flash(resi.input,"bump",160);flash($("total"),"pop",140);
+    const [x,y]=center(resi.input);burst(x,y,14+n*6,2.6);
+    sfx.log();buzz(10);render({fromUser:true});
+  },260);
+};
+calcBooking();
 
 document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState==="visible"&&rollover()){CATS.forEach(c=>c.input.value=S.c[c.k]);wasHit=null;render()}
